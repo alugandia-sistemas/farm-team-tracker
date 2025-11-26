@@ -6,14 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Download } from "lucide-react";
-import { format, startOfWeek, startOfMonth, endOfWeek, endOfMonth, differenceInHours, differenceInMinutes } from "date-fns";
+import { format, subDays, differenceInMinutes } from "date-fns";
 import { toast } from "sonner";
 
 const Reports = () => {
   const navigate = useNavigate();
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [dateRange, setDateRange] = useState("week");
+  const [dateRange, setDateRange] = useState("1week");
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeam, setSelectedTeam] = useState("all");
 
@@ -44,16 +44,28 @@ const Reports = () => {
 
   const getDateRange = () => {
     const now = new Date();
-    if (dateRange === "week") {
-      return {
-        start: startOfWeek(now, { weekStartsOn: 1 }),
-        end: endOfWeek(now, { weekStartsOn: 1 }),
-      };
-    } else {
-      return {
-        start: startOfMonth(now),
-        end: endOfMonth(now),
-      };
+    
+    switch (dateRange) {
+      case "1week":
+        return {
+          start: subDays(now, 7),
+          end: now,
+        };
+      case "2weeks":
+        return {
+          start: subDays(now, 14),
+          end: now,
+        };
+      case "1month":
+        return {
+          start: subDays(now, 30),
+          end: now,
+        };
+      default:
+        return {
+          start: subDays(now, 7),
+          end: now,
+        };
     }
   };
 
@@ -161,8 +173,9 @@ const Reports = () => {
                   <SelectValue placeholder="Período" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="week">Esta Semana</SelectItem>
-                  <SelectItem value="month">Este Mes</SelectItem>
+                  <SelectItem value="1week">Última Semana</SelectItem>
+                  <SelectItem value="2weeks">Últimas 2 Semanas</SelectItem>
+                  <SelectItem value="1month">Último Mes</SelectItem>
                 </SelectContent>
               </Select>
             </div>
