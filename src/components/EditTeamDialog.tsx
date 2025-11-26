@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,7 +18,9 @@ interface EditTeamDialogProps {
 export const EditTeamDialog = ({ open, onOpenChange, team, onSuccess }: EditTeamDialogProps) => {
   const [name, setName] = useState("");
   const [zoneFarm, setZoneFarm] = useState("");
+  const [responsibleId, setResponsibleId] = useState("");
   const [members, setMembers] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<any[]>([]);
   const [newMemberName, setNewMemberName] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -25,12 +28,30 @@ export const EditTeamDialog = ({ open, onOpenChange, team, onSuccess }: EditTeam
     if (team && open) {
       setName(team.name);
       setZoneFarm(team.zone_farm);
+      setResponsibleId(team.responsible_id || "");
       setMembers(team.team_members || []);
+      loadProfiles();
     }
   }, [team, open]);
 
+  const loadProfiles = async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .order("full_name");
+
+    if (!error && data) {
+      setProfiles(data);
+    }
+  };
+
   const handleAddMember = async () => {
     if (!newMemberName.trim()) return;
+
+    if (members.length >= 4) {
+      toast.error("Máximo 4 personas por equipo");
+      return;
+    }
 
     const { error } = await supabase
       .from("team_members")
@@ -82,6 +103,7 @@ export const EditTeamDialog = ({ open, onOpenChange, team, onSuccess }: EditTeam
       .update({
         name,
         zone_farm: zoneFarm,
+        responsible_id: responsibleId || null,
       })
       .eq("id", team.id);
 
@@ -126,7 +148,23 @@ export const EditTeamDialog = ({ open, onOpenChange, team, onSuccess }: EditTeam
           </div>
 
           <div className="space-y-2">
-            <Label>Miembros del Equipo</Label>
+            <Label htmlFor="edit-responsible">Responsable (Opcional)</Label>
+            <Select value={responsibleId} onValueChange={setResponsibleId}>
+              <SelectTrigger id="edit-responsible" className="h-12">
+                <SelectValue placeholder="Selecciona un responsable" />
+              </SelectTrigger>
+              <SelectContent>
+                {profiles.map((profile) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Miembros del Equipo (Máximo 4)</Label>
             <div className="space-y-2">
               {members.map((member) => (
                 <div key={member.id} className="flex items-center justify-between p-2 bg-muted rounded">
@@ -149,7 +187,7 @@ export const EditTeamDialog = ({ open, onOpenChange, team, onSuccess }: EditTeam
                 placeholder="Nombre del nuevo miembro"
                 className="h-10"
               />
-              <Button type="button" onClick={handleAddMember} size="icon">
+              <Button type="button" onClick={handleAddMember} size="icon" disabled={members.length >= 4}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>

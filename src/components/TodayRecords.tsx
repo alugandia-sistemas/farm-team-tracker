@@ -42,10 +42,11 @@ export const TodayRecords = () => {
     
     const entryDate = new Date(entry);
     const exitDate = new Date(exit);
-    const hours = differenceInHours(exitDate, entryDate);
-    const minutes = differenceInMinutes(exitDate, entryDate) % 60;
+    const totalMinutes = differenceInMinutes(exitDate, entryDate);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
     
-    return `${hours}h ${minutes}m`;
+    return `${hours}:${minutes.toString().padStart(2, '0')}`;
   };
 
   if (loading) {
