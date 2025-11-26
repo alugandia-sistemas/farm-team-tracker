@@ -125,9 +125,10 @@ export const ExitModal = ({ open, onOpenChange, onSuccess }: ExitModalProps) => 
                     <SelectValue placeholder="Selecciona tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Cajas">Cajas</SelectItem>
-                    <SelectItem value="KG">KG</SelectItem>
-                    <SelectItem value="Metros">Metros</SelectItem>
+                    <SelectItem value="Cajones 15kg">Cajones 15kg</SelectItem>
+                    <SelectItem value="Cajones 20kg">Cajones 20kg</SelectItem>
+                    <SelectItem value="Cajones 25kg">Cajones 25kg</SelectItem>
+                    <SelectItem value="Kilogramos">Kilogramos</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

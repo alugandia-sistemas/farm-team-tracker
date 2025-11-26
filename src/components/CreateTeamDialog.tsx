@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 interface CreateTeamDialogProps {
@@ -15,7 +16,26 @@ interface CreateTeamDialogProps {
 export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDialogProps) => {
   const [name, setName] = useState("");
   const [zoneFarm, setZoneFarm] = useState("");
+  const [responsibleId, setResponsibleId] = useState("");
+  const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      loadProfiles();
+    }
+  }, [open]);
+
+  const loadProfiles = async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .order("full_name");
+
+    if (!error && data) {
+      setProfiles(data);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +48,7 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
       .insert({
         name,
         zone_farm: zoneFarm,
-        responsible_id: user?.id,
+        responsible_id: responsibleId || null,
       });
 
     if (error) {
@@ -37,6 +57,7 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
       toast.success("Equipo creado exitosamente");
       setName("");
       setZoneFarm("");
+      setResponsibleId("");
       onSuccess();
       onOpenChange(false);
     }
@@ -73,6 +94,22 @@ export const CreateTeamDialog = ({ open, onOpenChange, onSuccess }: CreateTeamDi
               required
               className="h-12"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="responsible">Responsable (Opcional)</Label>
+            <Select value={responsibleId} onValueChange={setResponsibleId}>
+              <SelectTrigger id="responsible" className="h-12">
+                <SelectValue placeholder="Selecciona un responsable" />
+              </SelectTrigger>
+              <SelectContent>
+                {profiles.map((profile) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <Button type="submit" className="w-full h-12" disabled={loading}>
