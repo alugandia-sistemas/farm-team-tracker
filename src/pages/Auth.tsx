@@ -1,158 +1,192 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [invitationToken, setInvitationToken] = useState("");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [fullName, setFullName] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if user is already authenticated
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/");
+      }
+    });
+  }, [navigate]);
+
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: loginEmail,
-      password: loginPassword,
-    });
+    try {
+      // Validate invitation token
+      const { data: tokenData, error: tokenError } = await supabase
+        .from("invitation_tokens")
+        .select("*")
+        .eq("token", invitationToken)
+        .eq("used", false)
+        .maybeSingle();
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Sesión iniciada");
-      navigate("/");
+      if (tokenError || !tokenData) {
+        throw new Error("Token de invitación inválido o ya usado");
+      }
+
+      if (new Date(tokenData.expires_at) < new Date()) {
+        throw new Error("El token de invitación ha expirado");
+      }
+
+      // Format phone number for Supabase (must start with +)
+      const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
+
+      // Send OTP via SMS
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        phone: formattedPhone,
+      });
+
+      if (otpError) throw otpError;
+
+      toast.success("¡OTP enviado a tu móvil!");
+      setStep("otp");
+    } catch (error: any) {
+      toast.error(error.message || "Error al enviar OTP");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email: signupEmail,
-      password: signupPassword,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-        emailRedirectTo: `${window.location.origin}/`,
-      },
-    });
+    try {
+      const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Cuenta creada exitosamente");
+      // Verify OTP
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        phone: formattedPhone,
+        token: otp,
+        type: "sms",
+      });
+
+      if (verifyError) throw verifyError;
+
+      // Mark token as used
+      const { error: updateError } = await supabase
+        .from("invitation_tokens")
+        .update({ 
+          used: true, 
+          used_by: data.user?.id 
+        })
+        .eq("token", invitationToken);
+
+      if (updateError) {
+        console.error("Error marking token as used:", updateError);
+      }
+
+      // Update profile with phone number
+      if (data.user) {
+        await supabase
+          .from("profiles")
+          .update({ phone_number: formattedPhone })
+          .eq("id", data.user.id);
+      }
+
+      toast.success("¡Autenticación exitosa!");
       navigate("/");
+    } catch (error: any) {
+      toast.error(error.message || "Error al verificar OTP");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="text-center mb-4">
-            <h1 className="text-4xl font-bold text-primary mb-2">GC</h1>
-            <CardTitle className="text-2xl">Gestor de Cuadrillas</CardTitle>
-          </div>
-          <CardDescription>
-            Control de equipos sin vigilancia
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold text-primary">GC</CardTitle>
+          <CardDescription className="text-xl">
+            Gestor de Cuadrillas
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-              <TabsTrigger value="signup">Registrarse</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Correo Electrónico</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="tu@correo.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    required
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Contraseña</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                    className="h-12"
-                  />
-                </div>
-                <Button type="submit" className="w-full h-12" disabled={loading}>
-                  {loading ? "Cargando..." : "Iniciar Sesión"}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Nombre Completo</Label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="Juan Pérez"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Correo Electrónico</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="tu@correo.com"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    required
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Contraseña</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="h-12"
-                  />
-                </div>
-                <Button type="submit" className="w-full h-12" disabled={loading}>
-                  {loading ? "Cargando..." : "Crear Cuenta"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+          {step === "phone" ? (
+            <form onSubmit={handleSendOTP} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Número de Móvil</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="+34612345678"
+                  required
+                  className="h-12"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Incluye el código de país (ej: +34 para España)
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="token">Token de Invitación</Label>
+                <Input
+                  id="token"
+                  type="text"
+                  value={invitationToken}
+                  onChange={(e) => setInvitationToken(e.target.value.toUpperCase())}
+                  placeholder="XXXX-XXXX-XXXX"
+                  required
+                  className="h-12"
+                />
+              </div>
+              <Button type="submit" className="w-full h-12" disabled={loading}>
+                {loading ? "Enviando..." : "Enviar OTP"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOTP} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="otp">Código OTP</Label>
+                <Input
+                  id="otp"
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="123456"
+                  required
+                  className="h-12 text-center text-2xl tracking-widest"
+                  maxLength={6}
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  Introduce el código que recibiste por SMS
+                </p>
+              </div>
+              <Button type="submit" className="w-full h-12" disabled={loading}>
+                {loading ? "Verificando..." : "Verificar OTP"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12"
+                onClick={() => {
+                  setStep("phone");
+                  setOtp("");
+                }}
+              >
+                Volver
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

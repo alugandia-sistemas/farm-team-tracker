@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { LogIn, LogOut, Users, FileText } from "lucide-react";
+import { LogIn, LogOut, Users, FileText, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { EntryModal } from "@/components/EntryModal";
 import { ExitModal } from "@/components/ExitModal";
@@ -82,6 +82,14 @@ const Dashboard = () => {
             >
               <FileText className="mr-2 h-5 w-5" />
               Reportes
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={() => navigate("/admin")}
+              className="hidden sm:flex"
+            >
+              <Settings className="mr-2 h-5 w-5" />
+              Admin
             </Button>
             <Button variant="secondary" onClick={handleLogout}>
               Salir

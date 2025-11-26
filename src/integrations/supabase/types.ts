@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      invitation_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+          used: boolean
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          token: string
+          used?: boolean
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used?: boolean
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       production: {
         Row: {
           created_at: string
@@ -51,16 +78,19 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          phone_number: string | null
         }
         Insert: {
           created_at?: string
           full_name: string
           id: string
+          phone_number?: string | null
         }
         Update: {
           created_at?: string
           full_name?: string
           id?: string
+          phone_number?: string | null
         }
         Relationships: []
       }
