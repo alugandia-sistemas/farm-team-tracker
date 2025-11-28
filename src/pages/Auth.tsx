@@ -103,28 +103,32 @@ const Auth = () => {
       const isDemoBypass = formattedPhone === "+34627535531" && otp === "123456";
       
       if (isDemoBypass) {
-        // Crear sesión de prueba sin verificar OTP real
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-          phone: formattedPhone,
-          password: otp, // Usar el código como password temporal
+        // Para el modo demo, usar email/password
+        const demoEmail = "demo@trackera.app";
+        const demoPassword = "DemoTrackera2024!";
+        
+        // Intentar login primero
+        let { data, error } = await supabase.auth.signInWithPassword({
+          email: demoEmail,
+          password: demoPassword,
         });
 
-        // Si falla el login, intentar registrar primero
-        if (signInError) {
+        // Si no existe el usuario, crearlo
+        if (error && error.message.includes("Invalid login credentials")) {
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            phone: formattedPhone,
-            password: otp,
+            email: demoEmail,
+            password: demoPassword,
+            options: {
+              data: {
+                full_name: "Usuario Demo"
+              }
+            }
           });
           
-          if (signUpError) throw new Error("Error en autenticación demo");
-          
-          // Usar los datos del registro
-          if (signUpData.user) {
-            await handleSuccessfulAuth(signUpData.user.id);
-            toast.success("¡Autenticación exitosa!");
-            navigate("/");
-            return;
-          }
+          if (signUpError) throw signUpError;
+          data = signUpData;
+        } else if (error) {
+          throw error;
         }
 
         if (data.user) {

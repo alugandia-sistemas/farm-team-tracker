@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,43 @@ const Admin = () => {
   const [quantity, setQuantity] = useState(10);
   const [expirationDays, setExpirationDays] = useState(30);
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [generatedTokens, setGeneratedTokens] = useState<any[]>([]);
+
+  useEffect(() => {
+    checkAdminAccess();
+  }, []);
+
+  const checkAdminAccess = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("Debes iniciar sesión");
+        navigate("/auth");
+        return;
+      }
+
+      // Check if user has admin role
+      const { data: roles, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (error || !roles) {
+        toast.error("No tienes permisos de administrador");
+        navigate("/");
+        return;
+      }
+
+      setCheckingAuth(false);
+    } catch (error) {
+      toast.error("Error al verificar permisos");
+      navigate("/");
+    }
+  };
 
   const handleGenerateTokens = async () => {
     setLoading(true);
@@ -60,6 +96,18 @@ const Admin = () => {
 
     toast.success("Tokens exportados a CSV");
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">Verificando permisos...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
