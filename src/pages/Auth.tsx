@@ -72,7 +72,7 @@ const Auth = () => {
 
       // Para el número de demo, no enviar SMS real
       if (formattedPhone === "+34627535531") {
-        toast.success("Usa el código: 12345678");
+        toast.success("Usa el código: 123456");
         setStep("otp");
       } else {
         // Send OTP via SMS para otros números
@@ -99,8 +99,8 @@ const Auth = () => {
     try {
       const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
 
-      // Bypass para demo: si es el número de prueba y el código es 12345678
-      const isDemoBypass = formattedPhone === "+34627535531" && otp === "12345678";
+      // Bypass para demo: si es el número de prueba y el código es 123456
+      const isDemoBypass = formattedPhone === "+34627535531" && otp === "123456";
       
       if (isDemoBypass) {
         // Crear sesión de prueba sin verificar OTP real
