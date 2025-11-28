@@ -24,6 +24,28 @@ const Auth = () => {
     });
   }, [navigate]);
 
+  const handleSuccessfulAuth = async (userId: string) => {
+    // Mark token as used
+    const { error: updateError } = await supabase
+      .from("invitation_tokens")
+      .update({ 
+        used: true, 
+        used_by: userId 
+      })
+      .eq("token", invitationToken);
+
+    if (updateError) {
+      console.error("Error marking token as used:", updateError);
+    }
+
+    // Update profile with phone number
+    const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
+    await supabase
+      .from("profiles")
+      .update({ phone_number: formattedPhone })
+      .eq("id", userId);
+  };
+
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -48,15 +70,21 @@ const Auth = () => {
       // Format phone number for Supabase (must start with +)
       const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
 
-      // Send OTP via SMS
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        phone: formattedPhone,
-      });
+      // Para el número de demo, no enviar SMS real
+      if (formattedPhone === "+34627535531") {
+        toast.success("Usa el código: 12345678");
+        setStep("otp");
+      } else {
+        // Send OTP via SMS para otros números
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          phone: formattedPhone,
+        });
 
-      if (otpError) throw otpError;
+        if (otpError) throw otpError;
 
-      toast.success("¡OTP enviado a tu móvil!");
-      setStep("otp");
+        toast.success("¡OTP enviado a tu móvil!");
+        setStep("otp");
+      }
     } catch (error: any) {
       toast.error(error.message || "Error al enviar OTP");
     } finally {
@@ -71,7 +99,43 @@ const Auth = () => {
     try {
       const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
 
-      // Verify OTP
+      // Bypass para demo: si es el número de prueba y el código es 12345678
+      const isDemoBypass = formattedPhone === "+34627535531" && otp === "12345678";
+      
+      if (isDemoBypass) {
+        // Crear sesión de prueba sin verificar OTP real
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          phone: formattedPhone,
+          password: otp, // Usar el código como password temporal
+        });
+
+        // Si falla el login, intentar registrar primero
+        if (signInError) {
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            phone: formattedPhone,
+            password: otp,
+          });
+          
+          if (signUpError) throw new Error("Error en autenticación demo");
+          
+          // Usar los datos del registro
+          if (signUpData.user) {
+            await handleSuccessfulAuth(signUpData.user.id);
+            toast.success("¡Autenticación exitosa!");
+            navigate("/");
+            return;
+          }
+        }
+
+        if (data.user) {
+          await handleSuccessfulAuth(data.user.id);
+          toast.success("¡Autenticación exitosa!");
+          navigate("/");
+          return;
+        }
+      }
+
+      // Flujo normal de OTP para otros números
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
         phone: formattedPhone,
         token: otp,
@@ -80,29 +144,12 @@ const Auth = () => {
 
       if (verifyError) throw verifyError;
 
-      // Mark token as used
-      const { error: updateError } = await supabase
-        .from("invitation_tokens")
-        .update({ 
-          used: true, 
-          used_by: data.user?.id 
-        })
-        .eq("token", invitationToken);
-
-      if (updateError) {
-        console.error("Error marking token as used:", updateError);
-      }
-
-      // Update profile with phone number
+      // Completar autenticación exitosa
       if (data.user) {
-        await supabase
-          .from("profiles")
-          .update({ phone_number: formattedPhone })
-          .eq("id", data.user.id);
+        await handleSuccessfulAuth(data.user.id);
+        toast.success("¡Autenticación exitosa!");
+        navigate("/");
       }
-
-      toast.success("¡Autenticación exitosa!");
-      navigate("/");
     } catch (error: any) {
       toast.error(error.message || "Error al verificar OTP");
     } finally {
