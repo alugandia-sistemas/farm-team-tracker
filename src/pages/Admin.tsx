@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus } from "lucide-react";
 import { toast } from "sonner";
+import WorkZonesManager from "@/components/WorkZonesManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -127,84 +129,97 @@ const Admin = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Generar Tokens de Invitación</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Cantidad de Tokens</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value))}
-                  min={1}
-                  max={100}
-                  className="h-12"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expiration">Días hasta Expiración</Label>
-                <Input
-                  id="expiration"
-                  type="number"
-                  value={expirationDays}
-                  onChange={(e) => setExpirationDays(parseInt(e.target.value))}
-                  min={1}
-                  max={365}
-                  className="h-12"
-                />
-              </div>
-              <div className="flex items-end">
-                <Button 
-                  onClick={handleGenerateTokens} 
-                  disabled={loading}
-                  className="w-full h-12"
-                >
-                  <Plus className="mr-2 h-5 w-5" />
-                  {loading ? "Generando..." : "Generar Tokens"}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="tokens" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="tokens">Tokens</TabsTrigger>
+            <TabsTrigger value="zones">Zonas de Trabajo</TabsTrigger>
+          </TabsList>
 
-        {generatedTokens.length > 0 && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Tokens Generados ({generatedTokens.length})</CardTitle>
-              <Button onClick={exportToCSV} variant="outline">
-                Exportar CSV
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Token</TableHead>
-                      <TableHead>Fecha de Expiración</TableHead>
-                      <TableHead>Estado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {generatedTokens.map((token) => (
-                      <TableRow key={token.id}>
-                        <TableCell className="font-mono font-bold">{token.token}</TableCell>
-                        <TableCell>{new Date(token.expires_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <span className="text-green-600 font-medium">Disponible</span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="tokens" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Generar Tokens de Invitación</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Cantidad de Tokens</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseInt(e.target.value))}
+                      min={1}
+                      max={100}
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="expiration">Días hasta Expiración</Label>
+                    <Input
+                      id="expiration"
+                      type="number"
+                      value={expirationDays}
+                      onChange={(e) => setExpirationDays(parseInt(e.target.value))}
+                      min={1}
+                      max={365}
+                      className="h-12"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button 
+                      onClick={handleGenerateTokens} 
+                      disabled={loading}
+                      className="w-full h-12"
+                    >
+                      <Plus className="mr-2 h-5 w-5" />
+                      {loading ? "Generando..." : "Generar Tokens"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {generatedTokens.length > 0 && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Tokens Generados ({generatedTokens.length})</CardTitle>
+                  <Button onClick={exportToCSV} variant="outline">
+                    Exportar CSV
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Token</TableHead>
+                          <TableHead>Fecha de Expiración</TableHead>
+                          <TableHead>Estado</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {generatedTokens.map((token) => (
+                          <TableRow key={token.id}>
+                            <TableCell className="font-mono font-bold">{token.token}</TableCell>
+                            <TableCell>{new Date(token.expires_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <span className="text-green-600 font-medium">Disponible</span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="zones">
+            <WorkZonesManager />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
