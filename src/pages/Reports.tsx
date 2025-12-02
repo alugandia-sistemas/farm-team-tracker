@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Download } from "lucide-react";
 import { format, subDays, differenceInMinutes } from "date-fns";
 import { toast } from "sonner";
+import ZonePerformanceCharts from "@/components/ZonePerformanceCharts";
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -227,6 +228,8 @@ const Reports = () => {
             </div>
           </CardContent>
         </Card>
+
+        <ZonePerformanceCharts records={records} />
 
         <Card>
           <CardHeader>
