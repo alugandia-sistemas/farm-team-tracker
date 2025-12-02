@@ -16,15 +16,18 @@ const Reports = () => {
   const [dateRange, setDateRange] = useState("1week");
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeam, setSelectedTeam] = useState("all");
+  const [workZones, setWorkZones] = useState<any[]>([]);
+  const [selectedZone, setSelectedZone] = useState("all");
 
   useEffect(() => {
     checkAuth();
     loadTeams();
+    loadWorkZones();
   }, []);
 
   useEffect(() => {
     loadRecords();
-  }, [dateRange, selectedTeam]);
+  }, [dateRange, selectedTeam, selectedZone]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -40,6 +43,15 @@ const Reports = () => {
       .order("name");
     
     setTeams(data || []);
+  };
+
+  const loadWorkZones = async () => {
+    const { data } = await supabase
+      .from("work_zones")
+      .select("*")
+      .order("name");
+    
+    setWorkZones(data || []);
   };
 
   const getDateRange = () => {
@@ -88,6 +100,10 @@ const Reports = () => {
 
     if (selectedTeam !== "all") {
       query = query.eq("team_id", selectedTeam);
+    }
+
+    if (selectedZone !== "all") {
+      query = query.eq("work_location", selectedZone);
     }
 
     const { data, error } = await query;
@@ -189,6 +205,21 @@ const Reports = () => {
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Select value={selectedZone} onValueChange={setSelectedZone}>
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Zona de Trabajo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las Zonas</SelectItem>
+                  {workZones.map((zone) => (
+                    <SelectItem key={zone.id} value={zone.name}>
+                      {zone.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
